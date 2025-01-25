@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BallJumpController : MonoBehaviour
 {
@@ -12,18 +13,31 @@ public class BallJumpController : MonoBehaviour
     public PlayerType playerType;
     public float rotationAngle = 15f; // Maximum rotation angle for each input direction
     public float rotationSpeed = 5f; // Speed of rotation
-    public float jumpForce = 10f; // Force applied when jumping
+    public float maxJumpForce = 20f; // Maximum force applied when jumping
+    public float minJumpForce = 5f;  // Minimum force for a quick tap
+    public float maxChargeTime = 2f; // Time to reach max jump force
+    public float resetSpeed = 3f;    // Speed at which the UI value returns to 0
+
+
+    [SerializeField] private Slider slider_energy;
 
     private Quaternion targetRotation; // Target rotation for the ball
     private Rigidbody rb;
 
     private Vector3 lastDirection; // Stores the direction based on the last rotation
     private bool isGrounded; // Tracks whether the ball is grounded
+    private float jumpCharge; // Tracks how long the jump button is held
 
     [Header("Ground Check Settings")]
     public Transform groundCheck; // Empty GameObject to mark the ball's bottom
     public float groundCheckRadius = 0.3f; // Radius of ground check
     public LayerMask groundLayer; // Layers considered as "ground"
+
+    private bool isChargingJump = false; // Tracks if jump is being charged
+
+    // New variable for the UI programmer
+    [Header("UI Debug Info")]
+    [Range(0, 1)] public float normalizedJumpHoldingTime; // Exposes jump holding time between 0 and 1
 
     void Start()
     {
@@ -40,11 +54,11 @@ public class BallJumpController : MonoBehaviour
         // Determine target rotation based on input
         UpdateTargetRotation(input);
 
-        // Handle jump input
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Jump(input);
-        }
+        // Handle jump charge and release
+        HandleJumpInput(input);
+
+        // Update the normalized jump holding time for the UI programmer
+        UpdateUINormalizedValue();
     }
 
     void FixedUpdate()
@@ -103,17 +117,46 @@ public class BallJumpController : MonoBehaviour
         rb.MoveRotation(Quaternion.Lerp(rb.rotation, targetRotation, Time.fixedDeltaTime * rotationSpeed));
     }
 
+    private void HandleJumpInput(Vector2 input)
+    {
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        {
+            // Start charging jump
+            isChargingJump = true;
+            jumpCharge = 0f;
+        }
+
+        if (Input.GetKey(KeyCode.Space) && isChargingJump)
+        {
+            // Increase jump charge over time
+            jumpCharge += Time.deltaTime;
+
+            // Clamp jump charge to max charge time
+            jumpCharge = Mathf.Clamp(jumpCharge, 0f, maxChargeTime);
+        }
+
+        if (Input.GetKeyUp(KeyCode.Space) && isChargingJump)
+        {
+            // Release jump
+            Jump(input);
+            isChargingJump = false;
+        }
+    }
+
     private void Jump(Vector2 input)
     {
         if (isGrounded)
         {
+            // Calculate jump force based on charge
+            float force = Mathf.Lerp(minJumpForce, maxJumpForce, jumpCharge / maxChargeTime);
+
             // If no directional input is provided, jump straight up
             Vector3 jumpDirection = input == Vector2.zero
                 ? Vector3.up // Straight up if no input is provided
                 : (lastDirection + Vector3.up).normalized;
 
             // Apply force
-            rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
+            rb.AddForce(jumpDirection * force, ForceMode.Impulse);
         }
     }
 
@@ -121,6 +164,23 @@ public class BallJumpController : MonoBehaviour
     {
         // Use a sphere cast to check if the ball is grounded
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
+    }
+
+    private void UpdateUINormalizedValue()
+    {
+        if (isChargingJump)
+        {
+            // Update the UI variable in real-time while charging
+            normalizedJumpHoldingTime = Mathf.Clamp01(jumpCharge / maxChargeTime);
+            
+        }
+        else
+        {
+            // Smoothly decrease the value back to 0 after release
+            normalizedJumpHoldingTime = Mathf.MoveTowards(normalizedJumpHoldingTime, 0f, Time.deltaTime * resetSpeed);
+            
+        }
+        UpdateUISlider(normalizedJumpHoldingTime);
     }
 
     private void OnDrawGizmos()
@@ -131,5 +191,12 @@ public class BallJumpController : MonoBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
+    }
+
+    private void UpdateUISlider(float normalizedJumpHoldingTime)
+    {
+        // flip the value to match the slider direction
+        normalizedJumpHoldingTime = 1 - normalizedJumpHoldingTime;
+        slider_energy.value = normalizedJumpHoldingTime;
     }
 }
