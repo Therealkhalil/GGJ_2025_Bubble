@@ -26,7 +26,7 @@ public class PickingSystem : MonoBehaviour
             Debug.Log("Detected: " + collider.name);
 
             
-            if (collider.gameObject == Ring && Input.GetKeyDown(KeyCode.P))
+            if (collider.gameObject == Ring && (Input.GetKeyDown(KeyCode.P)|| (Input.GetKeyDown(KeyCode.E))))
             {
                 if (!isPicking)
                 {
