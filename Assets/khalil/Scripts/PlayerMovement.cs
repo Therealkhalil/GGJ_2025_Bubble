@@ -29,7 +29,7 @@ public class BallJumpController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         targetRotation = transform.rotation; // Set the initial rotation as the starting target
-        lastDirection = Vector3.forward; // Default direction
+        lastDirection = Vector3.zero; // Default to no direction
     }
 
     void Update()
@@ -43,7 +43,7 @@ public class BallJumpController : MonoBehaviour
         // Handle jump input
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            Jump();
+            Jump(input);
         }
     }
 
@@ -54,6 +54,13 @@ public class BallJumpController : MonoBehaviour
 
         // Update ground status
         CheckGrounded();
+
+        // Stop sliding when grounded
+        if (isGrounded)
+        {
+            rb.linearVelocity = Vector3.zero; // Reset velocity
+            rb.angularVelocity = Vector3.zero; // Reset angular velocity
+        }
     }
 
     private Vector2 GetInput()
@@ -75,8 +82,8 @@ public class BallJumpController : MonoBehaviour
         float targetX = 0f;
         float targetZ = 0f;
 
-        if (input.y > 0) targetX = -rotationAngle; // Forward
-        if (input.y < 0) targetX = rotationAngle;  // Backward
+        if (input.y > 0) targetX = rotationAngle;  // Forward
+        if (input.y < 0) targetX = -rotationAngle; // Backward
         if (input.x > 0) targetZ = -rotationAngle; // Right
         if (input.x < 0) targetZ = rotationAngle;  // Left
 
@@ -96,12 +103,16 @@ public class BallJumpController : MonoBehaviour
         rb.MoveRotation(Quaternion.Lerp(rb.rotation, targetRotation, Time.fixedDeltaTime * rotationSpeed));
     }
 
-    private void Jump()
+    private void Jump(Vector2 input)
     {
         if (isGrounded)
         {
-            // Apply force in the last rotation direction with an upward component
-            Vector3 jumpDirection = (lastDirection + Vector3.up).normalized;
+            // If no directional input is provided, jump straight up
+            Vector3 jumpDirection = input == Vector2.zero
+                ? Vector3.up // Straight up if no input is provided
+                : (lastDirection + Vector3.up).normalized;
+
+            // Apply force
             rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
         }
     }
