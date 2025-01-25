@@ -6,15 +6,13 @@ public class PickingSystem : MonoBehaviour
     public GameObject Ring;
     public Rigidbody ringRb;
     public bool isPicking = false;
-    public SphereCastView virtualHand;
-    public float detectionRadius = 1.5f; 
+    public float detectionRadius = 0.5f; 
     public LayerMask detectionLayer; 
 
     void Start()
     {
         Ring = GameObject.Find("Pickable Object");
         ringRb = Ring.GetComponent<Rigidbody>();
-        virtualHand = GetComponent<SphereCastView>();
     }
 
     void Update()
@@ -57,5 +55,10 @@ public class PickingSystem : MonoBehaviour
         ringRb.isKinematic = false;
         isPicking = false;
         Ring.transform.parent = null;
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 }
