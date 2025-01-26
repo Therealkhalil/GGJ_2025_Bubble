@@ -89,7 +89,5 @@ public class LightFall : MonoBehaviour
         rb.useGravity = true;
         isCustomGravityActive = false;
 
-        // Destroy this script so it won't repeat
-        Destroy(this);
     }
 }

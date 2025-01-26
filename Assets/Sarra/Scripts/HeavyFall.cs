@@ -20,6 +20,7 @@ public class HeavyFall : MonoBehaviour
     private bool isShrinking = true;     // True while we're shrinking
     private bool isCustomGravityActive = true; // True while custom gravity is applied
 
+
     void Start()
     {
         // Remember the original scale
@@ -89,8 +90,6 @@ public class HeavyFall : MonoBehaviour
         // Revert gravity: turn default gravity on, disable custom gravity
         rb.useGravity = true;
         isCustomGravityActive = false;
-
-        // Finally, remove this script so it won't repeat
-        Destroy(this);
+        
     }
 }
