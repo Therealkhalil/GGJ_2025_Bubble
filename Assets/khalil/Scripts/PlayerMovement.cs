@@ -18,8 +18,9 @@ public class BallJumpController : MonoBehaviour
     public float maxChargeTime = 2f; // Time to reach max jump force
     public float resetSpeed = 3f;    // Speed at which the UI value returns to 0
 
-
-    [SerializeField] private Slider slider_energy;
+    [Header("UI Settings")]
+    public Slider slider_energy_player1; // Slider for Player 1
+    public Slider slider_energy_player2; // Slider for Player 2
 
     private Quaternion targetRotation; // Target rotation for the ball
     private Rigidbody rb;
@@ -42,7 +43,14 @@ public class BallJumpController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        targetRotation = transform.rotation; // Set the initial rotation as the starting target
+        if (playerType == PlayerType.Player1)
+        {
+            targetRotation = transform.rotation; // Set the initial rotation as the starting target
+        }
+        else
+        {
+            targetRotation = Quaternion.Euler(0f, 180f, 0f); // Set the initial rotation as the starting target for Player 2
+        }
         lastDirection = Vector3.zero; // Default to no direction
     }
 
@@ -92,7 +100,6 @@ public class BallJumpController : MonoBehaviour
 
     private void UpdateTargetRotation(Vector2 input)
     {
-        // Calculate the desired rotation angles based on input
         float targetX = 0f;
         float targetZ = 0f;
 
@@ -101,43 +108,40 @@ public class BallJumpController : MonoBehaviour
         if (input.x > 0) targetZ = -rotationAngle; // Right
         if (input.x < 0) targetZ = rotationAngle;  // Left
 
-        // Set the target rotation based on calculated angles
-        targetRotation = Quaternion.Euler(targetX, 0f, targetZ);
-
-        // Update last direction based on input
-        if (input != Vector2.zero)
+        if (input == Vector2.zero && playerType == PlayerType.Player2)
         {
+            targetRotation = Quaternion.Euler(0f, 180f, 0f);
+        }
+        else if (input != Vector2.zero)
+        {
+            targetRotation = Quaternion.Euler(targetX, 0f, targetZ);
             lastDirection = new Vector3(input.x, 0f, input.y).normalized;
         }
     }
 
     private void RotateBall()
     {
-        // Smoothly interpolate the Rigidbody's rotation toward the target rotation
         rb.MoveRotation(Quaternion.Lerp(rb.rotation, targetRotation, Time.fixedDeltaTime * rotationSpeed));
     }
 
     private void HandleJumpInput(Vector2 input)
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        KeyCode jumpKey = playerType == PlayerType.Player1 ? KeyCode.Space : KeyCode.RightShift;
+
+        if (Input.GetKeyDown(jumpKey) && isGrounded)
         {
-            // Start charging jump
             isChargingJump = true;
             jumpCharge = 0f;
         }
 
-        if (Input.GetKey(KeyCode.Space) && isChargingJump)
+        if (Input.GetKey(jumpKey) && isChargingJump)
         {
-            // Increase jump charge over time
             jumpCharge += Time.deltaTime;
-
-            // Clamp jump charge to max charge time
             jumpCharge = Mathf.Clamp(jumpCharge, 0f, maxChargeTime);
         }
 
-        if (Input.GetKeyUp(KeyCode.Space) && isChargingJump)
+        if (Input.GetKeyUp(jumpKey) && isChargingJump)
         {
-            // Release jump
             Jump(input);
             isChargingJump = false;
         }
@@ -147,22 +151,16 @@ public class BallJumpController : MonoBehaviour
     {
         if (isGrounded)
         {
-            // Calculate jump force based on charge
             float force = Mathf.Lerp(minJumpForce, maxJumpForce, jumpCharge / maxChargeTime);
-
-            // If no directional input is provided, jump straight up
             Vector3 jumpDirection = input == Vector2.zero
-                ? Vector3.up // Straight up if no input is provided
+                ? Vector3.up
                 : (lastDirection + Vector3.up).normalized;
-
-            // Apply force
             rb.AddForce(jumpDirection * force, ForceMode.Impulse);
         }
     }
 
     private void CheckGrounded()
     {
-        // Use a sphere cast to check if the ball is grounded
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
@@ -170,33 +168,35 @@ public class BallJumpController : MonoBehaviour
     {
         if (isChargingJump)
         {
-            // Update the UI variable in real-time while charging
             normalizedJumpHoldingTime = Mathf.Clamp01(jumpCharge / maxChargeTime);
-            
         }
         else
         {
-            // Smoothly decrease the value back to 0 after release
             normalizedJumpHoldingTime = Mathf.MoveTowards(normalizedJumpHoldingTime, 0f, Time.deltaTime * resetSpeed);
-            
         }
         UpdateUISlider(normalizedJumpHoldingTime);
     }
 
+    private void UpdateUISlider(float normalizedJumpHoldingTime)
+    {
+        normalizedJumpHoldingTime = 1 - normalizedJumpHoldingTime;
+
+        if (playerType == PlayerType.Player1 && slider_energy_player1 != null)
+        {
+            slider_energy_player1.value = normalizedJumpHoldingTime;
+        }
+        else if (playerType == PlayerType.Player2 && slider_energy_player2 != null)
+        {
+            slider_energy_player2.value = normalizedJumpHoldingTime;
+        }
+    }
+
     private void OnDrawGizmos()
     {
-        // Visualize the ground check sphere in the editor
         if (groundCheck != null)
         {
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
-    }
-
-    private void UpdateUISlider(float normalizedJumpHoldingTime)
-    {
-        // flip the value to match the slider direction
-        normalizedJumpHoldingTime = 1 - normalizedJumpHoldingTime;
-        slider_energy.value = normalizedJumpHoldingTime;
     }
 }
