@@ -1,40 +1,65 @@
 using System.Collections;
 using UnityEngine;
+using static PlayerMovement;
 
 public class Attack : MonoBehaviour
 {
-    public bool canAttack = true;
+    public bool canAttack = false;
     public float attackCooldown = 5f;
     public bool isOnCooldown = false;
-    public GameObject playerObject; 
+    [HideInInspector]
+    public GameObject playerHand; 
     public float attackRange = 3f;
+    [HideInInspector]
+    public PlayerMovement players;
+
+    private PickingSystem otherPlayerPickingSystem;
+
     void Start()
     {
-        playerObject = GameObject.FindWithTag("Player");
-        if (playerObject != null)
+        players = gameObject.GetComponentInParent<PlayerMovement>();
+
+        playerHand = GameObject.FindWithTag("Hand");
+        if (playerHand != null)
         {
-            Debug.Log($"Player object found: {playerObject.name}");
+            Debug.Log($"Player object found: {playerHand.name}");
         }
         else
         {
             Debug.Log("Player object not found.");
+        }
+
+        var allPickingSystems = GameObject.FindObjectsOfType<PickingSystem>();
+        foreach (var pickingSystem in allPickingSystems)
+        {
+            if (pickingSystem.players.playerType != players.playerType)
+            {
+                otherPlayerPickingSystem = pickingSystem;
+                break;
+            }
         }
     }
 
     void Update()
     {
         
-        if (playerObject != null && Vector3.Distance(transform.position, playerObject.transform.position) <= attackRange)
+        if (playerHand != null && Vector3.Distance(transform.position, playerHand.transform.position) <= attackRange)
         {
             canAttack = true;
         }
         else
         {
+            Debug.Log("you cannot attack");
             canAttack = false;
         }
 
        
-        if (canAttack && !isOnCooldown && Input.GetKeyDown(KeyCode.LeftControl))
+        if (players. playerType == PlayerType.Player1 && canAttack && !isOnCooldown && Input.GetKeyDown(KeyCode.LeftControl))
+        {
+            PerformAttack();
+        }
+
+        else if (players.playerType == PlayerType.Player2 && canAttack && !isOnCooldown && Input.GetKeyDown(KeyCode.RightControl))
         {
             PerformAttack();
         }
@@ -42,14 +67,15 @@ public class Attack : MonoBehaviour
 
     private void PerformAttack()
     {
-        if (playerObject != null)
+        if (playerHand != null)
         {
-            Debug.Log($"Attacking player: {playerObject.name}");
+            Debug.Log($"Attacking player: {playerHand.name}");
 
-            var pickingSystem = playerObject.GetComponent<PickingSystem>();
-            if (pickingSystem != null && pickingSystem.isPicking)
+            if (otherPlayerPickingSystem != null && otherPlayerPickingSystem.isPicking)
             {
-                pickingSystem.Dropping();
+
+                Debug.Log("Dropping object... in attack object");
+                otherPlayerPickingSystem.Dropping();
             }
         }
         else

@@ -1,17 +1,24 @@
 using System;
 using UnityEngine;
+using static PlayerMovement;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 public class PickingSystem : MonoBehaviour
 {
+    public PlayerType playerType;
     public GameObject Ring;
     public Rigidbody ringRb;
     public bool isPicking = false;
     public float detectionRadius = 0.5f; 
     public LayerMask detectionLayer; 
+    public float distanceObj = 0.5f;
 
-    void Start()
+    [HideInInspector]
+    public PlayerMovement players;
+    void Awake()
     {
-        Ring = GameObject.Find("Pickable Object");
+        players = gameObject.GetComponentInParent<PlayerMovement>();
+        Ring = GameObject.Find("Ring");
         ringRb = Ring.GetComponent<Rigidbody>();
     }
 
@@ -26,7 +33,7 @@ public class PickingSystem : MonoBehaviour
             Debug.Log("Detected: " + collider.name);
 
             
-            if (collider.gameObject == Ring && (Input.GetKeyDown(KeyCode.P)|| (Input.GetKeyDown(KeyCode.E))))
+            if (collider.gameObject == Ring &&  (Input.GetKeyDown(KeyCode.E) && players.playerType == PlayerType.Player1 ))
             {
                 if (!isPicking)
                 {
@@ -37,12 +44,27 @@ public class PickingSystem : MonoBehaviour
                     Dropping();
                 }
             }
+
+
+            if (collider.gameObject == Ring && (Input.GetKeyDown(KeyCode.P) && players.playerType == PlayerType.Player2))
+            {
+                if (!isPicking)
+                {
+                    Picking();
+                }
+                else
+                {
+                    Dropping();
+                }
+            }
+
+
         }
     }
 
     public void Picking()
     {
-        Ring.transform.position = transform.position;
+        Ring.transform.position = transform.position + new Vector3(0f,0f,distanceObj);
         ringRb.useGravity = false;
         ringRb.isKinematic = true;
         isPicking = true;

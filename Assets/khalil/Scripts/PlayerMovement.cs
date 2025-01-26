@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BallJumpController : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     public enum PlayerType
     {
@@ -11,6 +11,7 @@ public class BallJumpController : MonoBehaviour
 
     [Header("Player Settings")]
     public PlayerType playerType;
+
     public float rotationAngle = 15f; // Maximum rotation angle for each input direction
     public float rotationSpeed = 5f; // Speed of rotation
     public float maxJumpForce = 20f; // Maximum force applied when jumping
